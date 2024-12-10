@@ -1,71 +1,158 @@
-# Jarvis-The-voice-Assistant-
-This Python project implements a voice assistant named "Jarvis" that can perform various tasks such as searching Wikipedia, opening websites, playing music, telling jokes, sending emails, and responding to voice commands. The assistant uses several libraries for speech recognition, text-to-speech conversion, and API integration.
-________________________________________
-# PREREQUISITES
-Ensure you have Python installed (version 3.6 or above). Install the following Python libraries before running the project:
-1.	pyttsx3 (for text-to-speech)
-pip install pyttsx3
-2.	speechRecognition (for speech-to-text)
-pip install SpeechRecognition
-3.	wikipedia (for Wikipedia searches)
-pip install wikipedia
-4.	requests (for API requests)
-pip install requests
-5.	Other Tools
-o	Make sure your system has a microphone for speech input.
-o	Internet connection is required for some functionalities like Wikipedia search, fetching jokes, or sending emails.
-________________________________________
-# PROJECT FILES
-1.	voice_assistant.py: The main script containing the code.
-2.	Optionally:
-o	Music folder path to store your music files.
-o	Specific application paths for custom commands.
-________________________________________
-# INSTRUCTIONS TO RUN THE PROJECT
-Step 1: Configure the Script
-1.	Email Setup:
-o	Replace 'youremail@gmail.com' and 'your-password' in the sendEmail function with your actual email and password. Use an app-specific password for better security.
-o	Enable "Allow less secure apps" in your Gmail settings or set up an App Password.
-2.	Paths:
-o	Update music_dir with the absolute path to your music folder.
-o	Update codePath with the correct path of applications you want to open (e.g., VS Code).
-3.	Permissions:
-o	Ensure your microphone is accessible by Python.
-o	Grant permissions for sending emails.
-Step 2: Run the Script
-1.	Save the script as voice_assistant.py.
-2.	Run the script:
-python voice_assistant.py
-3.	The assistant will greet you based on the time of day and wait for your command.
-________________________________________
-# FUNCTIONALITIES
-1.	Wikipedia Search:
-o	Command: "Search [topic] on Wikipedia"
-o	Action: Provides a brief summary of the topic.
-2.	Open Websites:
-o	Commands:
-	"Open YouTube"
-	"Open Google"
-	"Open StackOverflow"
-o	Action: Opens the respective website in the default browser.
-3.	Play Music:
-o	Command: "Play music"
-o	Action: Plays a random song from the specified music folder.
-4.	Tell Time:
-o	Command: "What is the time?"
-o	Action: Announces the current time.
-5.	Send Email:
-o	Command: "Send email"
-o	Action: Asks for the message and sends it to the specified email address.
-6.	Tell Jokes:
-o	Command: "Tell me a joke"
-o	Action: Fetches and narrates a random joke.
-7.	Exit:
-o	Commands: "Quit", "Exit", "Bye"
-o	Action: Closes the program.
-________________________________________
-# NOTES
-•	Ensure you have an active internet connection for functionalities like Wikipedia search, jokes, and email sending.
-•	For speech recognition, speak clearly into the microphone.
-•	Customize the paths and parameters as per your requirements.
+import pyttsx3  # pip install pyttsx3
+import speech_recognition as sr  # pip install speechRecognition
+import datetime
+import wikipedia  # pip install wikipedia
+import webbrowser
+import os
+import smtplib
+import requests  # pip install requests
+import random
 
+# Initialize Text-to-Speech Engine
+engine = pyttsx3.init('sapi5')
+voices = engine.getProperty('voices')
+engine.setProperty('voice', voices[0].id)  # Use male voice
+engine.setProperty('rate', 170)  # Adjust speaking speed
+
+
+def speak(audio):
+    """Speak the provided text."""
+    engine.say(audio)
+    engine.runAndWait()
+
+
+def wishMe():
+    
+    """Greet the user based on the time of the day."""
+    hour = int(datetime.datetime.now().hour)
+    if 0 <= hour < 12:
+        speak("Good Morning!")
+    elif 12 <= hour < 18:
+        speak("Good Afternoon!")
+    else:
+        speak("Good Evening!")
+        
+
+    speak("I am Jarvis. How can I assist you today?")
+
+
+def takeCommand():
+    """Take microphone input from the user and return it as a string."""
+    r = sr.Recognizer()
+    with sr.Microphone() as source:
+        print("Listening...")
+        r.pause_threshold = 1
+        audio = r.listen(source)
+
+    try:
+        print("Recognizing...")
+        query = r.recognize_google(audio, language='en-in')
+        print(f"User said: {query}\n")
+    except Exception as e:
+        print("Could not recognize your voice. Please say that again...")
+        return "None"
+    return query.lower()
+
+
+def sendEmail(to, content):
+    """Send an email to the specified recipient."""
+    try:
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.ehlo()
+        server.starttls()
+        # Replace with your email and password
+        server.login('youremail@gmail.com', 'your-password')
+        server.sendmail('youremail@gmail.com', to, content)
+        server.close()
+        speak("Email has been sent successfully!")
+    except Exception as e:
+        print(e)
+        speak("I am sorry, I could not send the email.")
+
+
+def tellJoke():
+    """Fetch a random joke from an API."""
+    try:
+        response = requests.get("https://official-joke-api.appspot.com/random_joke")
+        joke = response.json()
+        speak(f"Here's a joke: {joke['setup']}")
+        speak(f"{joke['punchline']}")
+    except Exception as e:
+        print(e)
+        speak("Sorry, I couldn't fetch a joke at the moment.")
+
+
+if __name__ == '__main__':
+    wishMe()
+    while True:
+        query = takeCommand()
+
+        # Wikipedia Search
+        if 'wikipedia' in query:
+            speak('Searching Wikipedia...')
+            query = query.replace("wikipedia", "")
+            results = wikipedia.summary(query, sentences=2)
+            speak("According to Wikipedia")
+            print(results)
+            speak(results)
+
+        # Open Websites
+        elif 'open youtube' in query:
+            webbrowser.open("youtube.com")
+        elif 'open google' in query:
+            webbrowser.open("google.com")
+        elif 'open stackoverflow' in query:
+            webbrowser.open("stackoverflow.com")
+        elif 'open wiki' in query:
+            webbrowser.open("wikipedia.com")   
+
+        # Play Music
+        elif 'play music' in query:
+            music_dir = "C:\\Users\\YourMusicFolder"  # Replace with your music folder
+            songs = os.listdir(music_dir)
+            if songs:
+                song = random.choice(songs)
+                os.startfile(os.path.join(music_dir, song))
+            else:
+                speak("I couldn't find any music in your folder.")
+
+        # Tell the Time
+        elif 'the time' in query:
+            strTime = datetime.datetime.now().strftime("%H:%M:%S")
+            speak(f"The time is {strTime}")
+
+        # Open Applications
+        elif 'open code' in query:
+            codePath = "C:\\Users\\Desktop\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe"  # Replace with your app path
+            os.startfile(codePath)
+
+        # Email Functionality
+        elif 'email' in query:
+            try:
+                speak("What should I say?")
+                content = takeCommand()
+                to = "recipientemail@gmail.com"  # Replace with the recipient's email
+                sendEmail(to, content)
+            except Exception as e:
+                print(e)
+                speak("I couldn't send the email.")
+
+        # Fetch a Joke
+        elif 'tell me a joke' in query:
+            tellJoke()
+            print("{query}\n")
+        # Fetch a Joke
+        elif 'tell me other joke' in query or 'tell me another joke' in query:
+            tellJoke()
+            print("{query}\n") 
+
+        # Quit the Assistant
+        elif 'quit' in query or 'exit' in query or 'bye' in query:
+            speak("Goodbye! Have a nice day.")
+            break
+
+        else:
+            speak("I am sorry, I don't understand that command. Please try again.")
+
+
+            
